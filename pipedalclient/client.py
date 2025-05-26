@@ -34,7 +34,7 @@ class PiPedalClient():
         return self.__pedalboard
 
     @classmethod
-    async def create(cls, url: str) -> "PiPedalClient":
+    async def create(cls, url: str) -> PiPedalClient:
         obj = cls()
         obj.__ws = await websockets.connect(url)
         return obj
@@ -68,12 +68,12 @@ class PiPedalClient():
                 break
 
     @message_handler("ehlo")
-    async def __onHelloResponse(client: "PiPedalClient", root):
+    async def __onHelloResponse(client: PiPedalClient, root):
         client.__client_id = int(root[1])
         print(f"Hello response received, clientId: {client.__client_id}")
 
     @message_handler("onControlChanged")
-    async def __onControlChanged(client: "PiPedalClient", root):
+    async def __onControlChanged(client: PiPedalClient, root):
         instance = root[1].get("instanceId")
         symbol = root[1].get("symbol")
         value = root[1].get("value")
@@ -83,11 +83,18 @@ class PiPedalClient():
         print(f"Control changed: {symbol} = {value}")
 
     @message_handler("onPedalboardChanged")
-    async def __onPedalboardChanged(client: "PiPedalClient", root):
+    async def __onPedalboardChanged(client: PiPedalClient, root):
         pb = Pedalboard(client, root[1]["pedalboard"])
         client.__pedalboard = pb
         client.on_pedalboard_changed(pb)
         print(f"Pedalboard changed.")
+
+    @message_handler("currentPedalboard")
+    async def __onCurrentPedalboard(client: PiPedalClient, root):
+        pb = Pedalboard(client, root[1])
+        client.__pedalboard = pb
+        client.on_pedalboard_changed(pb)
+        print(f"Current pedalboard received.")
 
     def send_set_control(self, instance_id, symbol, value):
         asyncio.run_coroutine_threadsafe(self.send_set_control_async(instance_id, symbol, value), self.__loop)
@@ -105,4 +112,17 @@ class PiPedalClient():
             }
         ]
         print("Sent setControl ", message)
+        await self.__ws.send(json.dumps(message))
+
+    def send_current_pedalboard(self):
+        asyncio.run_coroutine_threadsafe(self.send_current_pedalboard_async(), self.__loop)
+
+    async def send_current_pedalboard_async(self):
+        message = [
+            {
+                "message": "currentPedalboard",
+                "replyTo": 0
+            }
+        ]
+        print("Sent currentPedalboard ", message)
         await self.__ws.send(json.dumps(message))

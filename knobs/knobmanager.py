@@ -7,6 +7,7 @@ class KnobManager():
     def __init__(self, pedal_client: PiPedalClient):
         self.pedal_client: PiPedalClient = pedal_client
         self.pedal_client.on_pedalboard_changed.add_listener(lambda pb: self.__init_knobs())
+        self.pedal_client.send_current_pedalboard()
 
         with open("config.yml", "r") as f:
             config = yaml.safe_load(f)
