@@ -1,0 +1,5 @@
+knobs:
+  - display_addr: 0x3c
+    rotary_pin1: 17
+    rotary_pin2: 18
+    push_pin: 27
